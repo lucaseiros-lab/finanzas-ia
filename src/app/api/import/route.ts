@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         if (isImagePDF(text)) {
           // Use Claude Vision for image PDFs
           const base64 = buffer.toString('base64')
-          const visionText = await extractFromImageWithVision(base64, 'image/jpeg')
+          const visionText = await extractFromImageWithVision(base64)
           parsedTransactions = parsePDFText(visionText, filename)
         } else {
           parsedTransactions = parsePDFText(text, filename)

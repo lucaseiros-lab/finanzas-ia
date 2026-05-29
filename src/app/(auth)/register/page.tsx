@@ -20,9 +20,9 @@ export default function RegisterPage() {
   const [done, setDone] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
-  const supabase = createClient()
 
   const handleRegister = async (e: React.FormEvent) => {
+    const supabase = createClient()
     e.preventDefault()
 
     if (password !== confirmPassword) {
