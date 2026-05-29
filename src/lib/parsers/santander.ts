@@ -6,6 +6,9 @@
  * - Año mal parseado: "24/04/2688882263" → regex ahora captura exactamente DD/MM/YY o DD/MM/20YY
  * - Sección Visa/Amex: "Tarjeta Santander" y "Visa crédito" están en líneas SEPARADAS
  * - Formato split de tarjeta: fecha sola en una línea, comprobante+monto en la siguiente
+ * - "Consumos totales por tarjeta" (resumen) reseteaba sección antes de las transacciones reales
+ *   → Fix: reset solo con "Consumos totales" EXACTO (fin de línea)
+ * - "Saldo anterior" y "Tu pago en pesos" eran parseados como transacciones de tarjeta
  */
 
 import { ParsedTransaction } from '@/types'
@@ -14,14 +17,18 @@ import { parseDateArgentine, cleanAmount } from '@/lib/utils'
 type Section = 'account_ars' | 'account_usd' | 'visa' | 'amex' | 'other'
 
 const SKIP_LINES = [
-  'saldo inicial', 'saldo total', 'fecha', 'comprobante', 'movimiento',
+  'saldo inicial', 'saldo total', 'saldo anterior', 'fecha', 'comprobante', 'movimiento',
   'caja de ahorro', 'cuenta corriente', 'saldo en cuenta',
-  'consumos totales', 'total a pagar', 'pago mínimo', 'pago minimo',
+  'total a pagar', 'pago mínimo', 'pago minimo',
   'pagos totales', 'impuestos', '¿qué es', 'plan v:', 'tna:', 'tea:',
   'pago anterior', 'devoluciones', 'legales', 'fondos comunes',
   'iibb percep', 'iva rg', 'db.rg', 'cuotas a vencer',
-  'total consumos', 'información de la tarjeta', 'tarjeta terminada',
+  'total consumos', 'consumos totales por', // "por tarjeta" — NO resetear sección
+  'información de la tarjeta', 'tarjeta terminada',
   'fechacomprobantedescrip', 'fechacomprobante',
+  'tu pago en', 'tc1430', 'monto a pagar', 'período actual',
+  'cierre anterior', 'próximo cierre', 'superclub', 'puntos disponibles',
+  'así usaste', 'retiros de efectivo', 'tasa nominal', 'tasa efectiva',
 ]
 
 function shouldSkip(line: string): boolean {
@@ -137,7 +144,8 @@ export function parseSantanderPDF(text: string): ParsedTransaction[] {
 
     if (/^consumos del mes/i.test(line)) { i++; continue }
     // Reset to 'other' only on true section boundaries
-    if (/^pagos$/i.test(line) || /^tarjetas$/i.test(line) || /^resumen de tus productos/i.test(line) || /^consumos totales/i.test(line)) {
+    // Reset SOLO en boundaries reales — "Consumos totales" EXACTO (no "por tarjeta")
+    if (/^pagos$/i.test(line) || /^tarjetas$/i.test(line) || /^resumen de tus productos/i.test(line) || /^consumos totales$/i.test(line)) {
       section = 'other'; i++; continue
     }
     // Skip sub-headers that appear inside credit card sections (don't reset)

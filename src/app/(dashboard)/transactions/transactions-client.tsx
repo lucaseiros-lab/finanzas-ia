@@ -13,7 +13,7 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import { Transaction, CATEGORIES, CATEGORY_COLORS, Category } from '@/types'
 import {
   Search, ChevronLeft, ChevronRight, CheckCircle2,
-  AlertCircle, ArrowUpDown, X, Edit2, Banknote, CreditCard, Wallet,
+  AlertCircle, ArrowUpDown, X, Edit2, Banknote, Wallet,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -21,6 +21,23 @@ const PAGE_SIZE = 100
 
 // Radix Select no acepta value="" — usamos sentinel "all"
 const ALL = '__all__'
+
+// Logos inline SVG para Visa y Amex
+function VisaLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 48 16" className={className} aria-label="Visa">
+      <text x="0" y="13" fontFamily="Arial Black,Arial" fontWeight="900" fontSize="14" fill="#1a1f71">VISA</text>
+    </svg>
+  )
+}
+function AmexLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 56 16" className={className} aria-label="American Express">
+      <rect width="56" height="16" rx="2" fill="#016FD0"/>
+      <text x="4" y="12" fontFamily="Arial" fontWeight="700" fontSize="9" fill="white">AMEX</text>
+    </svg>
+  )
+}
 
 export function TransactionsClient() {
   return (
@@ -42,6 +59,7 @@ function TransactionsInner() {
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState(ALL)
   const [type, setType] = useState(ALL)
+  const [accountFilter, setAccountFilter] = useState(ALL)
   const [needsReview, setNeedsReview] = useState(() => searchParams.get('needs_review') === 'true')
   const [sortBy, setSortBy] = useState('date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -57,6 +75,7 @@ function TransactionsInner() {
     if (search) params.set('search', search)
     if (category !== ALL) params.set('category', category)
     if (type !== ALL) params.set('type', type)
+    if (accountFilter !== ALL) params.set('account_filter', accountFilter)
     if (needsReview) params.set('needs_review', 'true')
     return params.toString()
   }, [page, sortBy, sortOrder, search, category, type, needsReview])
@@ -75,7 +94,7 @@ function TransactionsInner() {
   }, [buildQuery])
 
   useEffect(() => { load() }, [load])
-  useEffect(() => { setPage(1) }, [search, category, type, needsReview])
+  useEffect(() => { setPage(1) }, [search, category, type, accountFilter, needsReview])
 
   useEffect(() => {
     if (!toastMsg) return
@@ -106,7 +125,7 @@ function TransactionsInner() {
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
-  const activeFilters = [search, category !== ALL, type !== ALL, needsReview].filter(Boolean).length
+  const activeFilters = [search, category !== ALL, type !== ALL, accountFilter !== ALL, needsReview].filter(Boolean).length
 
   // Group by account/card for display
   const grouped = groupTransactions(transactions)
@@ -158,6 +177,19 @@ function TransactionsInner() {
           </SelectContent>
         </Select>
 
+        <Select value={accountFilter} onValueChange={setAccountFilter}>
+          <SelectTrigger className="w-[150px] h-9">
+            <SelectValue placeholder="Cuenta / Tarjeta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Todas las cuentas</SelectItem>
+            <SelectItem value="ars">🏦 Caja de Ahorro $</SelectItem>
+            <SelectItem value="usd">🏦 Caja de Ahorro U$S</SelectItem>
+            <SelectItem value="visa">💳 Visa</SelectItem>
+            <SelectItem value="amex">💳 American Express</SelectItem>
+          </SelectContent>
+        </Select>
+
         <Button variant={needsReview ? 'default' : 'outline'} size="sm"
           onClick={() => setNeedsReview(r => !r)} className="h-9 gap-1.5">
           <AlertCircle className="h-3.5 w-3.5" />
@@ -167,7 +199,7 @@ function TransactionsInner() {
 
         {activeFilters > 0 && (
           <Button variant="ghost" size="sm" className="h-9 text-muted-foreground"
-            onClick={() => { setSearch(''); setCategory(ALL); setType(ALL); setNeedsReview(false) }}>
+            onClick={() => { setSearch(''); setCategory(ALL); setType(ALL); setAccountFilter(ALL); setNeedsReview(false) }}>
             <X className="h-3.5 w-3.5 mr-1" /> Limpiar
           </Button>
         )}
@@ -288,8 +320,8 @@ function groupTransactions(txs: Transaction[]): TxGroup[] {
       label.toLowerCase().includes('amex') || label.toLowerCase().includes('american') ? 'amex' :
       first.account ? 'bank' : 'other'
 
-    const ars = items.filter(t => t.currency === 'ARS' || !t.currency)
-    const usd = items.filter(t => t.currency === 'USD')
+    const ars = items.filter(t => (t.currency === 'ARS' || !t.currency) && t.type !== 'transfer')
+    const usd = items.filter(t => t.currency === 'USD' && t.type !== 'transfer')
 
     groups.push({
       key,
@@ -325,8 +357,8 @@ function AccountGroup({
 }) {
   const [open, setOpen] = useState(true)
   const iconEl =
-    group.icon === 'visa' ? <CreditCard className="h-4 w-4 text-blue-400" /> :
-    group.icon === 'amex' ? <CreditCard className="h-4 w-4 text-indigo-400" /> :
+    group.icon === 'visa' ? <VisaLogo className="h-4 w-8" /> :
+    group.icon === 'amex' ? <AmexLogo className="h-4 w-10" /> :
     group.icon === 'bank' ? <Banknote className="h-4 w-4 text-orange-400" /> :
     <Wallet className="h-4 w-4 text-muted-foreground" />
 
@@ -458,11 +490,15 @@ function TransactionRow({ tx, editing, onEdit, onCategoryChange, onCancelEdit }:
         editing ? 'bg-primary/5' : 'hover:bg-muted/20',
         tx.needs_review && !editing && 'border-l-2 border-l-amber-500/50'
       )}>
-        <div className="min-w-0">
-          <p className="text-sm truncate">{tx.description}</p>
-          {tx.merchant && tx.merchant !== tx.description && (
-            <p className="text-xs text-muted-foreground/70 truncate">{tx.merchant}</p>
-          )}
+        <div className="min-w-0 flex items-center gap-2">
+          {tx.card === 'Visa' && <VisaLogo className="h-4 w-8 shrink-0" />}
+          {tx.card === 'American Express' && <AmexLogo className="h-4 w-10 shrink-0" />}
+          <div className="min-w-0">
+            <p className="text-sm truncate">{tx.description}</p>
+            {tx.merchant && tx.merchant !== tx.description && (
+              <p className="text-xs text-muted-foreground/70 truncate">{tx.merchant}</p>
+            )}
+          </div>
         </div>
         <p className="text-xs text-muted-foreground self-center">{formatDate(tx.date)}</p>
         <div className="self-center">
@@ -511,7 +547,11 @@ function TransactionRow({ tx, editing, onEdit, onCategoryChange, onCancelEdit }:
       )} onClick={onEdit}>
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-sm truncate">{tx.description}</p>
+            <div className="flex items-center gap-1.5">
+              {tx.card === 'Visa' && <VisaLogo className="h-3.5 w-7 shrink-0" />}
+              {tx.card === 'American Express' && <AmexLogo className="h-3.5 w-9 shrink-0" />}
+              <p className="text-sm truncate">{tx.description}</p>
+            </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               {formatDate(tx.date)} · <span style={{ color }}>{tx.category}</span>
             </p>

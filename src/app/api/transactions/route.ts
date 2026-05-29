@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const category = searchParams.get('category')
   const type = searchParams.get('type')
   const bank = searchParams.get('bank')
+  const account_filter = searchParams.get('account_filter') // 'ars'|'usd'|'visa'|'amex'
   const needs_review = searchParams.get('needs_review')
   const search = searchParams.get('search')
   const date_from = searchParams.get('date_from')
@@ -27,6 +28,10 @@ export async function GET(request: NextRequest) {
   if (category) query = query.eq('category', category)
   if (type) query = query.eq('type', type)
   if (bank) query = query.eq('bank', bank)
+  if (account_filter === 'visa') query = query.eq('card', 'Visa')
+  else if (account_filter === 'amex') query = query.eq('card', 'American Express')
+  else if (account_filter === 'usd') query = query.is('card', null).eq('currency', 'USD')
+  else if (account_filter === 'ars') query = query.is('card', null).neq('currency', 'USD')
   if (needs_review === 'true') query = query.eq('needs_review', true)
   if (date_from) query = query.gte('date', date_from)
   if (date_to) query = query.lte('date', date_to)
