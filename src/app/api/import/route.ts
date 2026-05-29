@@ -6,6 +6,7 @@ import { smartCategorize, extractFromImageWithVision } from '@/lib/ai/categorize
 import { detectBank, normalizePattern } from '@/lib/utils'
 import { ParsedTransaction, Category } from '@/types'
 import { createServiceClient } from '@/lib/supabase/server'
+import { createHash } from 'crypto'
 
 export const maxDuration = 60 // Vercel Pro: 60s, Hobby: 10s
 
@@ -29,8 +30,28 @@ export async function POST(request: NextRequest) {
     const ext = filename.split('.').pop()?.toLowerCase()
     const buffer = Buffer.from(await file.arrayBuffer())
 
-    // Create file record
+    // Deduplication: check if file with same content hash was already imported
+    const contentHash = createHash('sha256').update(buffer).digest('hex')
     const serviceClient = createServiceClient()
+
+    try {
+      const { data: existingFile } = await serviceClient
+        .from('files')
+        .select('id, original_name, created_at')
+        .eq('user_id', user.id)
+        .eq('content_hash', contentHash)
+        .eq('status', 'done')
+        .maybeSingle()
+
+      if (existingFile) {
+        return NextResponse.json(
+          { error: `Este archivo ya fue importado anteriormente (${existingFile.original_name}, ${new Date(existingFile.created_at).toLocaleDateString('es-AR')}). Si querés reimportar, eliminá primero el archivo anterior.` },
+          { status: 409 }
+        )
+      }
+    } catch {
+      // Column may not exist yet — skip dedup check
+    }
     const { data: fileRecord, error: fileError } = await serviceClient
       .from('files')
       .insert({
@@ -39,6 +60,7 @@ export async function POST(request: NextRequest) {
         original_name: filename,
         bank: detectBank(filename),
         status: 'processing',
+        ...(contentHash ? { content_hash: contentHash } : {}),
       })
       .select()
       .single()

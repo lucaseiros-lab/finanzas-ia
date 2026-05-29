@@ -1,5 +1,6 @@
 import { ParsedTransaction } from '@/types'
 import { parseDateArgentine, cleanAmount, detectBank, normalizePattern } from '@/lib/utils'
+import { isSantanderPDF, parseSantanderPDF } from './santander'
 
 interface RawRow {
   date?: string
@@ -33,6 +34,11 @@ export function isImagePDF(text: string): boolean {
 
 // Main parser: takes raw text, returns transactions
 export function parsePDFText(text: string, filename: string): ParsedTransaction[] {
+  // Santander has a unique multi-line format — use dedicated parser
+  if (isSantanderPDF(text)) {
+    return parseSantanderPDF(text)
+  }
+
   const bank = detectBank(text) || detectBank(filename) || undefined
 
   // Try multiple parsing strategies in order of confidence

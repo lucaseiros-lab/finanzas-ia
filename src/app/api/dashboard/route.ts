@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
   }
   const top_categories = Array.from(categoryMap.entries())
     .map(([category, { total, count }]) => ({ category, total, count }))
+    .filter(({ category }) => category !== 'Otros')
     .sort((a, b) => b.total - a.total)
     .slice(0, 10)
 
@@ -78,24 +79,34 @@ export async function GET(request: NextRequest) {
     .map(([month, { income, expenses }]) => ({ month, income, expenses }))
     .sort((a, b) => a.month.localeCompare(b.month))
 
-  // Recurring expenses
-  const descMap = new Map<string, { amounts: number[]; count: number }>()
-  for (const t of txs.filter(x => x.type === 'expense')) {
-    const key = t.description.slice(0, 40)
-    const existing = descMap.get(key) || { amounts: [], count: 0 }
+  // Recurring expenses — clean descriptions server-side
+  function cleanDesc(desc: string): string {
+    return desc
+      .replace(/\s+id\s+\S+.*$/i, '')
+      .replace(/\s+cuit\s+\S+.*$/i, '')
+      .replace(/\s*[-–]\s*\d[\d.\-/]{4,}\s*$/, '')
+      .replace(/\s*:\s*\d[\d.\-/]{4,}\s*$/, '')
+      .replace(/\s+\d{6,}\s*$/, '')
+      .trim()
+  }
+
+  const descMap = new Map<string, { amounts: number[]; count: number; cleanLabel: string }>()
+  for (const t of txs.filter(x => x.type === 'expense' && x.category !== 'Otros')) {
+    const key = t.description.slice(0, 50)
+    const existing = descMap.get(key) || { amounts: [], count: 0, cleanLabel: cleanDesc(t.description) }
     existing.amounts.push(t.amount)
     existing.count++
     descMap.set(key, existing)
   }
-  const recurring_expenses = Array.from(descMap.entries())
-    .filter(([, v]) => v.count >= 2)
-    .map(([description, { amounts, count }]) => ({
-      description,
+  const recurring_expenses = Array.from(descMap.values())
+    .filter(v => v.count >= 2)
+    .map(({ amounts, count, cleanLabel }) => ({
+      description: cleanLabel,
       amount: amounts.reduce((a, b) => a + b, 0) / amounts.length,
       frequency: count >= 10 ? 'mensual' : count >= 5 ? 'bimestral' : 'ocasional',
     }))
     .sort((a, b) => b.amount - a.amount)
-    .slice(0, 10)
+    .slice(0, 8)
 
   return NextResponse.json({
     total_income,

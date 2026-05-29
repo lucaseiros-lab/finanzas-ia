@@ -62,15 +62,40 @@ function StatCard({
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-lg text-sm">
-      {label && <p className="font-medium mb-1">{label}</p>}
+    <div style={{ background: '#1c1c1e', border: '1px solid #333', borderRadius: 8, padding: '8px 12px' }}>
+      {label && <p style={{ color: '#e5e7eb', fontWeight: 600, marginBottom: 4, fontSize: 12 }}>{label}</p>}
       {payload.map((entry: any) => (
-        <p key={entry.name} style={{ color: entry.color }} className="text-xs">
+        <p key={entry.name} style={{ color: entry.color || '#e5e7eb', fontSize: 12, margin: 0 }}>
           {entry.name}: {formatCurrency(entry.value)}
         </p>
       ))}
     </div>
   )
+}
+
+const PieTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null
+  const entry = payload[0]
+  return (
+    <div style={{ background: '#1c1c1e', border: '1px solid #333', borderRadius: 8, padding: '8px 12px' }}>
+      <p style={{ color: entry.payload.fill || '#e5e7eb', fontWeight: 600, fontSize: 13, margin: 0 }}>{entry.name}</p>
+      <p style={{ color: '#e5e7eb', fontSize: 12, margin: '4px 0 0' }}>
+        {formatCurrency(entry.value)} · {entry.payload.percentage?.toFixed(1)}%
+      </p>
+    </div>
+  )
+}
+
+// Strip trailing numeric codes and IDs from recurring expense descriptions
+function cleanRecurringDesc(desc: string): string {
+  return desc
+    .replace(/\s+id\s+\S+.*$/i, '')              // "Id debin xxxxx ..."
+    .replace(/\s+cuit\s+\S+.*$/i, '')            // "cuit xxxxx"
+    .replace(/\s*[-–]\s*\d[\d\.\-/]{4,}\s*$/, '')// trailing code like "- 0005905203"
+    .replace(/\s*:\s*\d[\d\.\-/]{4,}\s*$/, '')   // trailing code like ": 011132995800"
+    .replace(/\s+deb\.\s*automatico.*$/i, '')     // "Deb. automatico ..."
+    .replace(/\s+\d{6,}\s*$/, '')                 // any trailing long number
+    .trim()
 }
 
 export default function DashboardPage() {
@@ -220,7 +245,10 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
                   <Pie
-                    data={stats?.expenses_by_category.slice(0, 8) || []}
+                    data={(stats?.expenses_by_category.filter(e => e.category !== 'Otros').slice(0, 8) || []).map(e => ({
+                      ...e,
+                      fill: CATEGORY_COLORS[e.category] || '#9ca3af',
+                    }))}
                     dataKey="total"
                     nameKey="category"
                     cx="50%"
@@ -229,23 +257,14 @@ export default function DashboardPage() {
                     outerRadius={90}
                     paddingAngle={3}
                   >
-                    {(stats?.expenses_by_category.slice(0, 8) || []).map((entry, i) => (
+                    {(stats?.expenses_by_category.filter(e => e.category !== 'Otros').slice(0, 8) || []).map((entry) => (
                       <Cell
                         key={entry.category}
                         fill={CATEGORY_COLORS[entry.category] || '#9ca3af'}
                       />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(value: number) => formatCurrency(value)}
-                    contentStyle={{
-                      borderRadius: '8px',
-                      border: '1px solid hsl(var(--border))',
-                      background: 'hsl(var(--popover))',
-                      color: 'hsl(var(--popover-foreground))',
-                      fontSize: 12,
-                    }}
-                  />
+                  <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -335,7 +354,7 @@ export default function DashboardPage() {
               {stats.recurring_expenses.slice(0, 8).map(({ description, amount, frequency }) => (
                 <div key={description} className="rounded-lg border border-border/50 bg-muted/30 p-3">
                   <p className="text-xs text-muted-foreground mb-1 capitalize">{frequency}</p>
-                  <p className="text-sm font-medium truncate">{description}</p>
+                  <p className="text-sm font-medium truncate">{cleanRecurringDesc(description)}</p>
                   <p className="text-base font-bold text-primary mt-1">{formatCurrency(amount)}</p>
                 </div>
               ))}

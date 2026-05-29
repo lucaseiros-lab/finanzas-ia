@@ -2,8 +2,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
-  Sparkles, ArrowRight, Upload, Brain, BarChart3,
-  Shield, RefreshCw, Zap, CheckCircle2,
+  Coins, ArrowRight, Upload, Brain, BarChart3,
+  Shield, RefreshCw, Zap,
 } from 'lucide-react'
 
 const BANKS = [
@@ -57,8 +57,8 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 border-b border-border/40 backdrop-blur-md bg-background/70">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center shadow-lg shadow-brand-500/30">
-              <Sparkles className="h-4 w-4 text-white" />
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center shadow-lg shadow-brand-500/30">
+              <Coins className="h-4 w-4 text-white" />
             </div>
             <span className="font-bold text-sm tracking-tight">FinanzasIA</span>
           </div>
@@ -78,7 +78,7 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="max-w-6xl mx-auto px-6 pt-24 pb-20 text-center">
         <Badge variant="info" className="mb-6 gap-1.5">
-          <Sparkles className="h-3 w-3" /> Powered by Claude AI
+          <Coins className="h-3 w-3" /> Powered by Gemini AI
         </Badge>
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight leading-tight mb-6">
           Analizá tus extractos
@@ -179,8 +179,8 @@ export default function LandingPage() {
       <footer className="border-t border-border/40 py-8">
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
-            <div className="h-5 w-5 rounded bg-gradient-to-br from-brand-500 to-violet-500 flex items-center justify-center">
-              <Sparkles className="h-2.5 w-2.5 text-white" />
+            <div className="h-5 w-5 rounded bg-gradient-to-br from-orange-500 to-amber-400 flex items-center justify-center">
+              <Coins className="h-2.5 w-2.5 text-white" />
             </div>
             <span>FinanzasIA</span>
           </div>
