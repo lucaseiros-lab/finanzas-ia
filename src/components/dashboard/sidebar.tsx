@@ -8,8 +8,21 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import {
   LayoutDashboard, Upload, List, BarChart3, LogOut,
-  Moon, Sun, ChevronRight, Coins, Menu, X, ShieldCheck,
+  Moon, Sun, ChevronRight, Menu, X, ShieldCheck,
 } from 'lucide-react'
+
+const APP_VERSION = 'V1.0.0'
+
+function AppLogo({ size = 'md' }: { size?: 'sm' | 'md' }) {
+  const sz = size === 'sm' ? 'h-7 w-7 text-base' : 'h-8 w-8 text-lg'
+  return (
+    <div title={`FinanzasIA ${APP_VERSION}`}
+      className={`flex items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-400 shadow-lg shadow-orange-500/30 font-black text-white select-none cursor-default ${sz}`}
+      style={{ fontFamily: 'Arial Black, Arial', letterSpacing: '-1px' }}>
+      $
+    </div>
+  )
+}
 import { useTheme } from 'next-themes'
 
 const navItems = [
@@ -31,12 +44,10 @@ function NavContent({ pathname, onNavigate, onSignOut, theme, setTheme, isAdmin 
     <>
       {/* Logo */}
       <div className="flex h-16 items-center gap-2.5 border-b border-border/50 px-5 shrink-0">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-400 shadow-lg shadow-orange-500/30">
-          <Coins className="h-4 w-4 text-white" />
-        </div>
+        <AppLogo size="md" />
         <div>
           <span className="text-sm font-bold tracking-tight">FinanzasIA</span>
-          <p className="text-[10px] text-muted-foreground leading-none mt-0.5">Análisis bancario</p>
+          <p className="text-[10px] text-muted-foreground leading-none mt-0.5 font-mono">{APP_VERSION}</p>
         </div>
       </div>
 
@@ -142,9 +153,7 @@ export function Sidebar() {
       {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 h-14 flex items-center justify-between px-4 border-b border-border/50 bg-background/90 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-amber-400">
-            <Coins className="h-3.5 w-3.5 text-white" />
-          </div>
+          <AppLogo size="sm" />
           <span className="text-sm font-bold tracking-tight">FinanzasIA</span>
         </div>
         <button
