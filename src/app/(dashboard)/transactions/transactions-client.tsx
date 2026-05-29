@@ -58,7 +58,8 @@ function TransactionsInner() {
 
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState(ALL)
-  const [type, setType] = useState(ALL)
+  // Por defecto ocultamos transferencias (pagos entre cuentas / pago de tarjeta)
+  const [type, setType] = useState('no_transfer')
   const [accountFilter, setAccountFilter] = useState(ALL)
   const [needsReview, setNeedsReview] = useState(() => searchParams.get('needs_review') === 'true')
   const [sortBy, setSortBy] = useState('date')
@@ -125,7 +126,7 @@ function TransactionsInner() {
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
-  const activeFilters = [search, category !== ALL, type !== ALL, accountFilter !== ALL, needsReview].filter(Boolean).length
+  const activeFilters = [search, category !== ALL, type !== ALL && type !== 'no_transfer', accountFilter !== ALL, needsReview].filter(Boolean).length
 
   // Group by account/card for display
   const grouped = groupTransactions(transactions)
@@ -170,9 +171,10 @@ function TransactionsInner() {
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>Todos</SelectItem>
-            <SelectItem value="expense">Gastos</SelectItem>
-            <SelectItem value="income">Ingresos</SelectItem>
+            <SelectItem value="no_transfer">Gastos e Ingresos</SelectItem>
+            <SelectItem value={ALL}>Todos (incl. transferencias)</SelectItem>
+            <SelectItem value="expense">Solo gastos</SelectItem>
+            <SelectItem value="income">Solo ingresos</SelectItem>
             <SelectItem value="transfer">Transferencias</SelectItem>
           </SelectContent>
         </Select>
@@ -199,7 +201,7 @@ function TransactionsInner() {
 
         {activeFilters > 0 && (
           <Button variant="ghost" size="sm" className="h-9 text-muted-foreground"
-            onClick={() => { setSearch(''); setCategory(ALL); setType(ALL); setAccountFilter(ALL); setNeedsReview(false) }}>
+            onClick={() => { setSearch(''); setCategory(ALL); setType('no_transfer'); setAccountFilter(ALL); setNeedsReview(false) }}>
             <X className="h-3.5 w-3.5 mr-1" /> Limpiar
           </Button>
         )}
@@ -218,7 +220,7 @@ function TransactionsInner() {
             <p className="text-muted-foreground">No se encontraron movimientos</p>
             {activeFilters > 0 && (
               <Button variant="ghost" size="sm" className="mt-2"
-                onClick={() => { setSearch(''); setCategory(ALL); setType(ALL); setNeedsReview(false) }}>
+                onClick={() => { setSearch(''); setCategory(ALL); setType('no_transfer'); setNeedsReview(false) }}>
                 Limpiar filtros
               </Button>
             )}

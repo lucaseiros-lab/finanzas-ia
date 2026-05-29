@@ -26,7 +26,8 @@ export async function GET(request: NextRequest) {
     .eq('user_id', user.id)
 
   if (category) query = query.eq('category', category)
-  if (type) query = query.eq('type', type)
+  if (type === 'no_transfer') query = query.neq('type', 'transfer')
+  else if (type) query = query.eq('type', type)
   if (bank) query = query.eq('bank', bank)
   if (account_filter === 'visa') query = query.eq('card', 'Visa')
   else if (account_filter === 'amex') query = query.eq('card', 'American Express')
