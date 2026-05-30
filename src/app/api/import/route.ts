@@ -136,36 +136,26 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Deduplicación al insertar: obtener transacciones existentes del usuario
-    // y descartar las que ya existen (mismo date + amount + primeros 30 chars de descripción)
-    const { data: existing } = await serviceClient
-      .from('transactions')
-      .select('date, amount, description')
-      .eq('user_id', user.id)
-
-    const existingKeys = new Set(
-      (existing || []).map(t => `${t.date}_${t.amount}_${t.description.slice(0, 30)}`)
-    )
-
-    const newRecords = transactionRecords.filter(t => {
-      const key = `${t.date}_${t.amount}_${t.description.slice(0, 30)}`
-      return !existingKeys.has(key)
-    })
-
-    const skipped = transactionRecords.length - newRecords.length
-
-    // Batch insert — solo los que no existen
-    const BATCH = 500
-    for (let i = 0; i < newRecords.length; i += BATCH) {
+    // Insert de a 1 para saltar duplicados silenciosamente (unique constraint en DB)
+    let inserted = 0
+    let skipped = 0
+    for (const record of transactionRecords) {
       const { error: insertError } = await serviceClient
         .from('transactions')
-        .insert(newRecords.slice(i, i + BATCH))
+        .insert(record)
 
       if (insertError) {
-        console.error('Insert error:', insertError)
-        throw new Error(`Error insertando transacciones: ${insertError.message}`)
+        if (insertError.code === '23505') {
+          skipped++ // duplicate — skip silently
+        } else {
+          console.error('Insert error:', insertError)
+          throw new Error(`Error insertando transacciones: ${insertError.message}`)
+        }
+      } else {
+        inserted++
       }
     }
+    const newRecords = { length: inserted }
 
     // Update file record as done
     await serviceClient
@@ -180,7 +170,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       file_id: fileRecord.id,
-      transaction_count: newRecords.length,
+      transaction_count: inserted,
       skipped,
       pending_review: categorizationResults.filter(r => r.needs_review).length,
     })
