@@ -136,26 +136,42 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Insert de a 1 para saltar duplicados silenciosamente (unique constraint en DB)
-    let inserted = 0
-    let skipped = 0
-    for (const record of transactionRecords) {
+    // Pre-filter duplicates: load all existing keys (paginated) then bulk insert new ones
+    const existingKeys = new Set<string>()
+    let page = 0
+    while (true) {
+      const { data: existing } = await serviceClient
+        .from('transactions')
+        .select('date, amount, currency, description')
+        .eq('user_id', user.id)
+        .range(page * 1000, (page + 1) * 1000 - 1)
+      if (!existing?.length) break
+      for (const t of existing) {
+        existingKeys.add(`${t.date}|${t.amount}|${t.currency}|${t.description.slice(0, 60).toLowerCase().trim()}`)
+      }
+      if (existing.length < 1000) break
+      page++
+    }
+
+    const newRecords = transactionRecords.filter(t => {
+      const key = `${t.date}|${t.amount}|${t.currency}|${t.description.slice(0, 60).toLowerCase().trim()}`
+      return !existingKeys.has(key)
+    })
+    let inserted = newRecords.length
+    const skipped = transactionRecords.length - inserted
+
+    // Bulk insert in batches of 200
+    const BATCH = 200
+    for (let i = 0; i < newRecords.length; i += BATCH) {
       const { error: insertError } = await serviceClient
         .from('transactions')
-        .insert(record)
+        .insert(newRecords.slice(i, i + BATCH))
 
       if (insertError) {
-        if (insertError.code === '23505') {
-          skipped++ // duplicate — skip silently
-        } else {
-          console.error('Insert error:', insertError)
-          throw new Error(`Error insertando transacciones: ${insertError.message}`)
-        }
-      } else {
-        inserted++
+        console.error('Insert error:', insertError)
+        throw new Error(`Error insertando transacciones: ${insertError.message}`)
       }
     }
-    const newRecords = { length: inserted }
 
     // Update file record as done
     await serviceClient
