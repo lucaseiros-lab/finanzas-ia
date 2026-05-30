@@ -8,7 +8,7 @@ import pdfParse from 'pdf-parse'
 import fs from 'fs'
 
 const SUPABASE_URL = 'https://hqvabrpginyfnrmpqzjb.supabase.co'
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxdmFicnBnaW55Zm5ybXBxempiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDAxMTEwNiwiZXhwIjoyMDk1NTg3MTA2fQ.MCXDTul5DHNzuHSLKfv8D_IGTONnMfZHr0h1usodt8U'
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!
 const USER_EMAIL = 'lucaseiros@gmail.com'
 const PDF_PATH = 'C:/Users/lucas/Downloads/Santander Abril 2026.pdf'
 

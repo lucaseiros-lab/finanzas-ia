@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://hqvabrpginyfnrmpqzjb.supabase.co'
-const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhxdmFicnBnaW55Zm5ybXBxempiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MDAxMTEwNiwiZXhwIjoyMDk1NTg3MTA2fQ.MCXDTul5DHNzuHSLKfv8D_IGTONnMfZHr0h1usodt8U'
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!
 
 // Transaction IDs known to be duplicates (from old file c33486a8)
 const DUPLICATE_TX_IDS = [
