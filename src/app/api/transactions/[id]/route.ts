@@ -51,8 +51,8 @@ export async function PATCH(
     return NextResponse.json({ error: updateError.message }, { status: 500 })
   }
 
-  // If category was changed, save to AI learning
-  if (category && category !== tx.category) {
+  // Save to AI learning whenever user explicitly confirms a category
+  if (category && (category_confirmed || category !== tx.category)) {
     const normalized = normalizePattern(tx.description)
 
     await serviceClient
