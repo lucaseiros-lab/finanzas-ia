@@ -18,7 +18,9 @@ async function fetchCategories(): Promise<UserCategory[]> {
     _promise = fetch('/api/categories')
       .then(r => r.json())
       .then(d => {
-        _cache = (d.categories || []).filter((c: UserCategory) => c.active)
+        _cache = (d.categories || [])
+          .filter((c: UserCategory) => c.active)
+          .sort((a: UserCategory, b: UserCategory) => a.name.localeCompare(b.name, 'es'))
         return _cache!
       })
       .catch(() => {

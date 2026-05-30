@@ -194,11 +194,14 @@ export function parseSantanderPDF(text: string): ParsedTransaction[] {
       if (!desc) { i = j; continue }
 
       const descLc = desc.toLowerCase()
-      // Skip credit card payment — it's a duplicate of Visa/Amex expenses
-      if (descLc.includes('pago tarjeta de credito') || descLc.includes('pago tarjeta de crédito')) { i = j; continue }
+
+      // Credit card payment: import as 'transfer' (not expense) so it's excluded from
+      // category spending but available for cash flow analysis
+      const isCreditCardPayment = /pago\s+(de\s+)?tarjeta\s+de\s+cr[eé]dito/i.test(desc)
 
       let type: 'income' | 'expense' | 'transfer' = amountParsed.isDebit ? 'expense' : 'income'
-      if (descLc.includes('transferencia')) type = amountParsed.isDebit ? 'transfer' : 'income'
+      if (isCreditCardPayment) type = 'transfer'
+      else if (descLc.includes('transferencia')) type = amountParsed.isDebit ? 'transfer' : 'income'
       if (descLc.includes('sueldo') || descLc.includes('pago a proveedores recibido') || descLc.includes('pago recibido')) type = 'income'
       if (descLc.includes('extraccion') || descLc.includes('retiro')) type = 'expense'
 
