@@ -54,10 +54,24 @@ export async function GET(request: NextRequest) {
     percentage: total_expenses > 0 ? (c.total / total_expenses) * 100 : 0,
   }))
 
-  // Top merchants
+  // Top merchants — clean display names
+  function cleanMerchant(raw: string): string {
+    return raw
+      .replace(/^(debito\s+por\s+compra\s+(de\s+)?|por\s+online\s+banking\s+|debito\s+automatico\s+|debito\s+debin\s+|debito\s+transf\s+|pago\s+de\s+servicios\s+|pago\s+a\s+proveedores\s+|extraccion\s+autoservicio\s+|autoservicio\s+)/i, '')
+      .replace(/\s+(s\.?a\.?|srl|s\.r\.l\.?)\.?\s*$/i, '')
+      .replace(/\s*[-–]\s*\d[\d.\-/]{3,}\s*$/, '')
+      .replace(/\s+\d{6,}\s*$/, '')
+      .replace(/\s+id\s+\S+.*$/i, '')
+      .replace(/\s+cuit\s+\S+.*$/i, '')
+      .trim()
+      .replace(/\b\w/g, c => c.toUpperCase()) // Title case
+  }
+
   const merchantMap = new Map<string, { total: number; count: number }>()
-  for (const t of txs.filter(x => x.type === 'expense' && x.merchant)) {
-    const m = t.merchant!
+  for (const t of txs.filter(x => x.type === 'expense')) {
+    const raw = t.merchant || t.description
+    const m = cleanMerchant(raw)
+    if (!m || m.length < 2) continue
     const existing = merchantMap.get(m) || { total: 0, count: 0 }
     merchantMap.set(m, { total: existing.total + t.amount, count: existing.count + 1 })
   }

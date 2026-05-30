@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/components/ui/use-toast'
 import {
   LayoutDashboard, Upload, List, BarChart3, LogOut,
-  Moon, Sun, ChevronRight, Menu, X, ShieldCheck,
+  Moon, Sun, ChevronRight, Menu, X, ShieldCheck, Layers,
 } from 'lucide-react'
 
 const APP_VERSION = 'V1.0.0'
@@ -29,6 +29,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/import', label: 'Importar', icon: Upload },
   { href: '/transactions', label: 'Movimientos', icon: List },
+  { href: '/review', label: 'Revisar', icon: Layers },
   { href: '/analytics', label: 'Análisis', icon: BarChart3 },
 ]
 

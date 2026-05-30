@@ -127,7 +127,7 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground mt-0.5">Resumen financiero de los últimos {months} meses</p>
         </div>
         <div className="flex items-center gap-2">
-          {[3, 6, 12].map(m => (
+          {[1, 2, 3, 6, 12].map(m => (
             <Button
               key={m}
               variant={months === m ? 'default' : 'outline'}
@@ -238,36 +238,52 @@ export default function DashboardPage() {
             <CardTitle className="text-base">Gastos por categoría</CardTitle>
             <CardDescription>Distribución del período</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pb-2">
             {loading ? (
               <Skeleton className="h-64 w-full rounded-full" />
-            ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={(stats?.expenses_by_category.filter(e => e.category !== 'Otros').slice(0, 8) || []).map(e => ({
-                      ...e,
-                      fill: CATEGORY_COLORS[e.category] || '#9ca3af',
-                    }))}
-                    dataKey="total"
-                    nameKey="category"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={3}
-                  >
-                    {(stats?.expenses_by_category.filter(e => e.category !== 'Otros').slice(0, 8) || []).map((entry) => (
-                      <Cell
-                        key={entry.category}
-                        fill={CATEGORY_COLORS[entry.category] || '#9ca3af'}
-                      />
+            ) : (() => {
+              const pieData = (stats?.expenses_by_category.filter(e => e.category !== 'Otros').slice(0, 8) || []).map(e => ({
+                ...e,
+                fill: CATEGORY_COLORS[e.category] || '#9ca3af',
+              }))
+              return (
+                <div>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        dataKey="total"
+                        nameKey="category"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={3}
+                      >
+                        {pieData.map((entry) => (
+                          <Cell key={entry.category} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<PieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {/* Always-visible legend with percentages */}
+                  <div className="mt-2 space-y-1">
+                    {pieData.map(e => (
+                      <div key={e.category} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: e.fill }} />
+                          <span className="truncate text-muted-foreground">{e.category}</span>
+                        </div>
+                        <span className="font-medium ml-2 shrink-0" style={{ color: e.fill }}>
+                          {e.percentage.toFixed(1)}%
+                        </span>
+                      </div>
                     ))}
-                  </Pie>
-                  <Tooltip content={<PieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
+                  </div>
+                </div>
+              )
+            })()}
           </CardContent>
         </Card>
       </div>

@@ -193,8 +193,11 @@ export function parseSantanderPDF(text: string): ParsedTransaction[] {
       const desc = cleanDesc(descParts.join(' '))
       if (!desc) { i = j; continue }
 
-      let type: 'income' | 'expense' | 'transfer' = amountParsed.isDebit ? 'expense' : 'income'
       const descLc = desc.toLowerCase()
+      // Skip credit card payment — it's a duplicate of Visa/Amex expenses
+      if (descLc.includes('pago tarjeta de credito') || descLc.includes('pago tarjeta de crédito')) { i = j; continue }
+
+      let type: 'income' | 'expense' | 'transfer' = amountParsed.isDebit ? 'expense' : 'income'
       if (descLc.includes('transferencia')) type = amountParsed.isDebit ? 'transfer' : 'income'
       if (descLc.includes('sueldo') || descLc.includes('pago a proveedores recibido') || descLc.includes('pago recibido')) type = 'income'
       if (descLc.includes('extraccion') || descLc.includes('retiro')) type = 'expense'

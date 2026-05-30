@@ -2,44 +2,50 @@ export type TransactionType = 'income' | 'expense' | 'transfer'
 
 export type Category =
   | 'Alimentación'
-  | 'Supermercado'
-  | 'Salud'
-  | 'Farmacia'
-  | 'Restaurantes'
-  | 'Delivery'
-  | 'Impuestos'
-  | 'Servicios'
-  | 'Hogar'
-  | 'Expensas'
-  | 'Transporte'
-  | 'Combustible'
-  | 'Streaming'
-  | 'Suscripciones'
-  | 'Ocio'
-  | 'Viajes'
-  | 'Educación'
-  | 'Tecnología'
-  | 'Seguros'
   | 'Bancos'
+  | 'Cafeterías'
+  | 'Combustible'
   | 'Comisiones'
-  | 'Inversiones'
-  | 'Transferencias'
-  | 'Sueldos'
-  | 'Ingresos'
-  | 'Mercado Pago'
+  | 'Cuidado personal'
+  | 'Delivery'
+  | 'Educación'
   | 'Efectivo'
+  | 'Expensas'
+  | 'Farmacia'
+  | 'Gastos Papá'
+  | 'Hogar'
+  | 'Impuestos'
+  | 'Ingresos'
+  | 'Inversiones'
+  | 'Mercado Pago'
+  | 'Ocio'
+  | 'Restaurantes'
+  | 'Ropa'
+  | 'Salud'
+  | 'Seguros'
+  | 'Servicios'
+  | 'Sueldos'
+  | 'Supermercado'
+  | 'Suscripciones'
+  | 'Tecnología'
+  | 'Transferencias'
+  | 'Transporte'
+  | 'Viajes'
   | 'Otros' // legacy — no mostrar en UI
 
 export const CATEGORIES: Category[] = [
   'Alimentación',
   'Bancos',
+  'Cafeterías',
   'Combustible',
   'Comisiones',
+  'Cuidado personal',
   'Delivery',
   'Educación',
   'Efectivo',
   'Expensas',
   'Farmacia',
+  'Gastos Papá',
   'Hogar',
   'Impuestos',
   'Ingresos',
@@ -47,10 +53,10 @@ export const CATEGORIES: Category[] = [
   'Mercado Pago',
   'Ocio',
   'Restaurantes',
+  'Ropa',
   'Salud',
   'Seguros',
   'Servicios',
-  'Streaming',
   'Sueldos',
   'Supermercado',
   'Suscripciones',
@@ -62,32 +68,35 @@ export const CATEGORIES: Category[] = [
 
 export const CATEGORY_COLORS: Record<Category, string> = {
   Alimentación: '#f59e0b',
-  Supermercado: '#10b981',
-  Salud: '#ef4444',
-  Farmacia: '#ec4899',
-  Restaurantes: '#f97316',
-  Delivery: '#fb923c',
-  Impuestos: '#dc2626',
-  Servicios: '#6366f1',
-  Hogar: '#8b5cf6',
-  Expensas: '#7c3aed',
-  Transporte: '#06b6d4',
-  Combustible: '#0891b2',
-  Streaming: '#a855f7',
-  Suscripciones: '#9333ea',
-  Ocio: '#e879f9',
-  Viajes: '#14b8a6',
-  Educación: '#0284c7',
-  Tecnología: '#2563eb',
-  Seguros: '#64748b',
   Bancos: '#334155',
+  'Cafeterías': '#d97706',
+  Combustible: '#0891b2',
   Comisiones: '#6b7280',
-  Inversiones: '#16a34a',
-  Transferencias: '#737373',
-  Sueldos: '#22c55e',
-  Ingresos: '#4ade80',
-  'Mercado Pago': '#00b1ea',
+  'Cuidado personal': '#f472b6',
+  Delivery: '#fb923c',
+  Educación: '#0284c7',
   Efectivo: '#84cc16',
+  Expensas: '#7c3aed',
+  Farmacia: '#ec4899',
+  'Gastos Papá': '#a855f7',
+  Hogar: '#8b5cf6',
+  Impuestos: '#dc2626',
+  Ingresos: '#4ade80',
+  Inversiones: '#16a34a',
+  'Mercado Pago': '#00b1ea',
+  Ocio: '#e879f9',
+  Restaurantes: '#f97316',
+  Ropa: '#f43f5e',
+  Salud: '#ef4444',
+  Seguros: '#64748b',
+  Servicios: '#6366f1',
+  Sueldos: '#22c55e',
+  Supermercado: '#10b981',
+  Suscripciones: '#9333ea',
+  Tecnología: '#2563eb',
+  Transferencias: '#737373',
+  Transporte: '#06b6d4',
+  Viajes: '#14b8a6',
   Otros: '#9ca3af',
 }
 

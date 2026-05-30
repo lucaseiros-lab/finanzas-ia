@@ -12,8 +12,9 @@ import {
 } from '@/components/ui/select'
 import {
   Users, UserPlus, Mail, Shield, Trash2, Edit2, X, Check,
-  RefreshCw, Copy, ChevronDown, ChevronUp, Send,
+  RefreshCw, Copy, ChevronDown, ChevronUp, Send, Tag, Plus, GripVertical,
 } from 'lucide-react'
+import { CATEGORIES, CATEGORY_COLORS, Category } from '@/types'
 import { cn } from '@/lib/utils'
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<'users' | 'invitations'>('users')
+  const [tab, setTab] = useState<'users' | 'invitations' | 'categories'>('users')
   const [toast, setToast] = useState<string | null>(null)
 
   const showToast = (msg: string) => {
@@ -78,10 +79,10 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
-        {([['users', 'Usuarios', Users], ['invitations', 'Invitaciones', Mail]] as const).map(([key, label, Icon]) => (
+        {([['users', 'Usuarios', Users], ['invitations', 'Invitaciones', Mail], ['categories', 'Categorías', Tag]] as const).map(([key, label, Icon]) => (
           <button
             key={key}
-            onClick={() => setTab(key)}
+            onClick={() => setTab(key as any)}
             className={cn(
               'flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
               tab === key
@@ -97,6 +98,7 @@ export default function AdminPage() {
 
       {tab === 'users' && <UsersTab onToast={showToast} />}
       {tab === 'invitations' && <InvitationsTab onToast={showToast} />}
+      {tab === 'categories' && <CategoriesTab onToast={showToast} />}
     </div>
   )
 }
@@ -510,6 +512,214 @@ function InvitationsTab({ onToast }: { onToast: (m: string) => void }) {
           </p>
         </CardContent>
       </Card>
+    </div>
+  )
+}
+
+// ── Categories tab ─────────────────────────────────────────────────────────────
+
+const DEFAULT_COLORS = [
+  '#f59e0b','#10b981','#ef4444','#ec4899','#f97316','#fb923c',
+  '#dc2626','#6366f1','#8b5cf6','#7c3aed','#06b6d4','#0891b2',
+  '#a855f7','#9333ea','#e879f9','#14b8a6','#0284c7','#2563eb',
+  '#64748b','#334155','#6b7280','#16a34a','#737373','#22c55e',
+  '#4ade80','#00b1ea','#84cc16','#f43f5e','#d97706','#f472b6',
+]
+
+interface CatItem {
+  id: string
+  name: string
+  color: string
+  is_default: boolean
+  active: boolean
+}
+
+function CategoriesTab({ onToast }: { onToast: (m: string) => void }) {
+  const [items, setItems] = useState<CatItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [newName, setNewName] = useState('')
+  const [newColor, setNewColor] = useState('#6366f1')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editColor, setEditColor] = useState('')
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const res = await fetch('/api/categories')
+    if (res.ok) {
+      const data = await res.json()
+      // Show all (active + inactive) in admin
+      const res2 = await fetch('/api/categories?all=true')
+      // fallback: use normal endpoint but also fetch inactive
+      setItems(data.categories || [])
+    }
+    setLoading(false)
+  }, [])
+
+  // Load ALL categories (including inactive) for admin
+  useEffect(() => {
+    fetch('/api/categories?all=true').then(r => r.json()).then(d => {
+      setItems(d.categories || [])
+      setLoading(false)
+    })
+  }, [])
+
+  const addCategory = async () => {
+    const name = newName.trim()
+    if (!name) return
+    const res = await fetch('/api/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, color: newColor }),
+    })
+    const data = await res.json()
+    if (!res.ok) { onToast(data.error || 'Error'); return }
+    setItems(prev => [...prev, data.category].sort((a, b) => a.name.localeCompare(b.name, 'es')))
+    setNewName('')
+    onToast(`Categoría "${name}" creada`)
+  }
+
+  const toggleActive = async (item: CatItem) => {
+    const res = await fetch(`/api/categories/${item.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !item.active }),
+    })
+    if (res.ok) setItems(prev => prev.map(i => i.id === item.id ? { ...i, active: !i.active } : i))
+  }
+
+  const startEdit = (item: CatItem) => {
+    setEditingId(item.id)
+    setEditName(item.name)
+    setEditColor(item.color)
+  }
+
+  const saveEdit = async (item: CatItem) => {
+    const name = editName.trim()
+    if (!name) return
+    const res = await fetch(`/api/categories/${item.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, color: editColor }),
+    })
+    if (res.ok) {
+      setItems(prev => prev.map(i => i.id === item.id ? { ...i, name, color: editColor } : i))
+      setEditingId(null)
+      onToast('Categoría actualizada')
+    }
+  }
+
+  const deleteCategory = async (item: CatItem) => {
+    const res = await fetch(`/api/categories/${item.id}`, { method: 'DELETE' })
+    const data = await res.json()
+    if (!res.ok) { onToast(data.error || 'Error'); return }
+    setItems(prev => prev.filter(i => i.id !== item.id))
+    onToast(`Categoría "${item.name}" eliminada`)
+  }
+
+  const active = items.filter(i => i.active)
+  const inactive = items.filter(i => !i.active)
+
+  if (loading) return <div className="space-y-2">{Array.from({length:6}).map((_,i)=><div key={i} className="h-10 bg-muted rounded-lg animate-pulse"/>)}</div>
+
+  return (
+    <div className="space-y-6">
+      {/* Add new */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm flex items-center gap-2"><Plus className="h-4 w-4" />Nueva categoría</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-2">
+            <input type="color" value={newColor} onChange={e => setNewColor(e.target.value)}
+              className="h-9 w-10 rounded-md border border-input cursor-pointer bg-transparent p-0.5" title="Color" />
+            <Input placeholder="Nombre de la categoría..." value={newName}
+              onChange={e => setNewName(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && addCategory()} className="h-9" />
+            <Button size="sm" onClick={addCategory} className="h-9 shrink-0">
+              <Plus className="h-4 w-4 mr-1" />Agregar
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {DEFAULT_COLORS.map(c => (
+              <button key={c} onClick={() => setNewColor(c)}
+                className={cn('h-5 w-5 rounded-full border-2 transition-transform hover:scale-110', newColor === c ? 'border-white scale-110' : 'border-transparent')}
+                style={{ backgroundColor: c }} />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Active list */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm">Categorías activas ({active.length})</CardTitle>
+          <CardDescription className="text-xs">Las base no se pueden eliminar, pero sí desactivar</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-1">
+          {active.map(item => {
+            const isEditing = editingId === item.id
+            return (
+              <div key={item.id} className={cn('flex items-center gap-2 rounded-lg px-2 py-1.5 group hover:bg-muted/40 transition-colors', isEditing && 'bg-muted/60')}>
+                {isEditing ? (
+                  <>
+                    <input type="color" value={editColor} onChange={e => setEditColor(e.target.value)}
+                      className="h-7 w-8 rounded border border-input cursor-pointer bg-transparent p-0.5" />
+                    <Input value={editName} onChange={e => setEditName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && saveEdit(item)}
+                      className="h-7 text-sm flex-1" autoFocus />
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-500" onClick={() => saveEdit(item)}>
+                      <Check className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingId(null)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                    <span className="text-sm flex-1">{item.name}</span>
+                    {item.is_default && <span className="text-[10px] text-muted-foreground">base</span>}
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => startEdit(item)}>
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-amber-500" onClick={() => toggleActive(item)} title="Desactivar">
+                        <X className="h-3 w-3" />
+                      </Button>
+                      {!item.is_default && (
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-muted-foreground hover:text-destructive" onClick={() => deleteCategory(item)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
+        </CardContent>
+      </Card>
+
+      {/* Inactive */}
+      {inactive.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm text-muted-foreground">Desactivadas ({inactive.length})</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {inactive.map(item => (
+              <div key={item.id} className="flex items-center gap-2 rounded-lg px-2 py-1.5 opacity-50 hover:opacity-100 group hover:bg-muted/40 transition-all">
+                <span className="h-3 w-3 rounded-full shrink-0 grayscale" style={{ backgroundColor: item.color }} />
+                <span className="text-sm flex-1 line-through">{item.name}</span>
+                <Button size="sm" variant="ghost" className="h-6 text-xs opacity-0 group-hover:opacity-100" onClick={() => toggleActive(item)}>
+                  Reactivar
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

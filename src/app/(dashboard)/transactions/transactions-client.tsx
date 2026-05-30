@@ -10,7 +10,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Transaction, CATEGORIES, CATEGORY_COLORS, Category } from '@/types'
+import { Transaction, CATEGORY_COLORS, Category } from '@/types'
+import { useCategories } from '@/hooks/useCategories'
 import {
   Search, ChevronLeft, ChevronRight, CheckCircle2,
   AlertCircle, ArrowUpDown, X, Edit2, Banknote, Wallet,
@@ -49,6 +50,7 @@ export function TransactionsClient() {
 
 function TransactionsInner() {
   const searchParams = useSearchParams()
+  const { categories: userCategories } = useCategories()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -58,10 +60,11 @@ function TransactionsInner() {
 
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState(ALL)
-  // Por defecto ocultamos transferencias (pagos entre cuentas / pago de tarjeta)
-  const [type, setType] = useState('no_transfer')
+  const [type, setType] = useState(ALL)
   const [accountFilter, setAccountFilter] = useState(ALL)
   const [needsReview, setNeedsReview] = useState(() => searchParams.get('needs_review') === 'true')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   const [sortBy, setSortBy] = useState('date')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
@@ -78,8 +81,10 @@ function TransactionsInner() {
     if (type !== ALL) params.set('type', type)
     if (accountFilter !== ALL) params.set('account_filter', accountFilter)
     if (needsReview) params.set('needs_review', 'true')
+    if (dateFrom) params.set('date_from', dateFrom)
+    if (dateTo) params.set('date_to', dateTo)
     return params.toString()
-  }, [page, sortBy, sortOrder, search, category, type, needsReview])
+  }, [page, sortBy, sortOrder, search, category, type, accountFilter, needsReview, dateFrom, dateTo])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -95,7 +100,7 @@ function TransactionsInner() {
   }, [buildQuery])
 
   useEffect(() => { load() }, [load])
-  useEffect(() => { setPage(1) }, [search, category, type, accountFilter, needsReview])
+  useEffect(() => { setPage(1) }, [search, category, type, accountFilter, needsReview, dateFrom, dateTo])
 
   useEffect(() => {
     if (!toastMsg) return
@@ -126,7 +131,7 @@ function TransactionsInner() {
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
-  const activeFilters = [search, category !== ALL, type !== ALL && type !== 'no_transfer', accountFilter !== ALL, needsReview].filter(Boolean).length
+  const activeFilters = [search, category !== ALL, type !== ALL, accountFilter !== ALL, needsReview, dateFrom, dateTo].filter(Boolean).length
 
   // Group by account/card for display
   const grouped = groupTransactions(transactions)
@@ -162,7 +167,7 @@ function TransactionsInner() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Todas las categorías</SelectItem>
-            {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            {userCategories.map(c => <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>)}
           </SelectContent>
         </Select>
 
@@ -192,6 +197,25 @@ function TransactionsInner() {
           </SelectContent>
         </Select>
 
+        {/* Date range */}
+        <div className="flex items-center gap-1">
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring w-[130px]"
+            title="Desde"
+          />
+          <span className="text-xs text-muted-foreground">–</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            className="h-9 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring w-[130px]"
+            title="Hasta"
+          />
+        </div>
+
         <Button variant={needsReview ? 'default' : 'outline'} size="sm"
           onClick={() => setNeedsReview(r => !r)} className="h-9 gap-1.5">
           <AlertCircle className="h-3.5 w-3.5" />
@@ -201,7 +225,7 @@ function TransactionsInner() {
 
         {activeFilters > 0 && (
           <Button variant="ghost" size="sm" className="h-9 text-muted-foreground"
-            onClick={() => { setSearch(''); setCategory(ALL); setType('no_transfer'); setAccountFilter(ALL); setNeedsReview(false) }}>
+            onClick={() => { setSearch(''); setCategory(ALL); setType(ALL); setAccountFilter(ALL); setNeedsReview(false); setDateFrom(''); setDateTo('') }}>
             <X className="h-3.5 w-3.5 mr-1" /> Limpiar
           </Button>
         )}
@@ -220,7 +244,7 @@ function TransactionsInner() {
             <p className="text-muted-foreground">No se encontraron movimientos</p>
             {activeFilters > 0 && (
               <Button variant="ghost" size="sm" className="mt-2"
-                onClick={() => { setSearch(''); setCategory(ALL); setType('no_transfer'); setNeedsReview(false) }}>
+                onClick={() => { setSearch(''); setCategory(ALL); setType(ALL); setNeedsReview(false) }}>
                 Limpiar filtros
               </Button>
             )}
@@ -482,6 +506,7 @@ function TransactionRow({ tx, editing, onEdit, onCategoryChange, onCancelEdit }:
   onCategoryChange: (cat: Category) => void
   onCancelEdit: () => void
 }) {
+  const { categories: userCategories } = useCategories()
   const color = CATEGORY_COLORS[tx.category] || '#9ca3af'
 
   return (
@@ -509,7 +534,7 @@ function TransactionRow({ tx, editing, onEdit, onCategoryChange, onCancelEdit }:
               <Select value={tx.category} onValueChange={v => onCategoryChange(v as Category)}>
                 <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                  {userCategories.map(c => <SelectItem key={c.name} value={c.name} className="text-xs">{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
               <button onClick={onCancelEdit} className="text-[10px] text-muted-foreground hover:text-foreground">Cancelar</button>
@@ -568,7 +593,7 @@ function TransactionRow({ tx, editing, onEdit, onCategoryChange, onCancelEdit }:
             <Select value={tx.category} onValueChange={v => onCategoryChange(v as Category)}>
               <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map(c => <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>)}
+                {userCategories.map(c => <SelectItem key={c.name} value={c.name} className="text-xs">{c.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
